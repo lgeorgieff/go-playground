@@ -50,7 +50,8 @@ func main() {
 		go func() {
 			time.Sleep(250 * time.Millisecond * time.Duration(rand.Intn(50)))
 			res := pool.Get()
-			fmt.Println("expensiveResource:", res)
+			time.Sleep(50 * time.Millisecond * time.Duration(rand.Intn(50)))
+			fmt.Printf("expensiveResource: %v, resourceCounter: %d\n", res, resourceCounter.Load())
 			pool.Put(res)
 			wgGet.Done()
 		}()
