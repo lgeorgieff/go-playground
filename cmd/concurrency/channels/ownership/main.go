@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-func chanOwner() <-chan int {
+// the resource/channel owner
+func producer() <-chan int {
 	const iterations = 6
-
 	// since we know how many values we will generate, we optimize and create a buffered channel
 	resultStream := make(chan int, iterations-1)
 	go func() {
@@ -23,13 +23,17 @@ func chanOwner() <-chan int {
 	return resultStream
 }
 
-func main() {
-	resultStream := chanOwner()
-	time.Sleep(500 * time.Millisecond)
-
+func consumer(stream <-chan int) {
 	// we are only concerned about blocking/waiting and reading values from the channel
-	for result := range resultStream {
+	for result := range stream {
 		fmt.Println("read:", result)
 	}
+}
+
+func main() {
+	resultStream := producer()
+	time.Sleep(500 * time.Millisecond)
+	consumer(resultStream)
+
 	fmt.Println("finishing main")
 }
