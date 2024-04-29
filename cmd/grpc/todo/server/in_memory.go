@@ -8,6 +8,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+var _ db = (*inMemmoryDB)(nil)
+
 type inMemmoryDB struct {
 	tasks  map[uint64]*pb.Task
 	nextID uint64
@@ -26,6 +28,15 @@ func (db *inMemmoryDB) addTask(description string, dueDate time.Time) (uint64, e
 	log.Printf("Stored task description=\"%s\", dueDate=%v, id=%d\n", description, dueDate, task.Id)
 
 	return task.Id, nil
+}
+
+func (db *inMemmoryDB) getTasks(f func(task *pb.Task) error) error {
+	for _, task := range db.tasks {
+		if err := f(task); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewDB() db {

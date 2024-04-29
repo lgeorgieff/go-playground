@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -42,6 +43,8 @@ func main() {
 		id, err := addTask(c, description, dueData)
 		log.Default().Printf("Adding task \"%s\" with result.id=%d, err=%v\n", description, id, err)
 	}
+
+	printTasks(c)
 }
 
 func addTask(c pb.TodoServiceClient, description string, dueDate time.Time) (uint64, error) {
@@ -54,4 +57,21 @@ func addTask(c pb.TodoServiceClient, description string, dueDate time.Time) (uin
 		return 0, err
 	}
 	return res.Id, nil
+}
+
+func printTasks(c pb.TodoServiceClient) {
+	stream, err := c.ListTasks(context.Background(), &pb.ListTasksRequest{})
+	if err != nil {
+		log.Fatalf("unexpected error when fetching task stream: %v", err)
+	}
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("unexpected error when reading task from stream: %v", err)
+		}
+		log.Printf("receveid task response: %v\n", res)
+	}
 }
