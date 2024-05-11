@@ -12,6 +12,7 @@ import (
 	pb "github.com/lgeorgieff/go-playground/proto/todo/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -64,7 +65,14 @@ func addTask(c pb.TodoServiceClient, description string, dueDate time.Time) (uin
 }
 
 func printTasks(c pb.TodoServiceClient) {
-	stream, err := c.ListTasks(context.Background(), &pb.ListTasksRequest{})
+	fm, err := fieldmaskpb.New(&pb.Task{}, "id")
+	if err != nil {
+		panic(err)
+	}
+	req := &pb.ListTasksRequest{
+		Mask: fm,
+	}
+	stream, err := c.ListTasks(context.Background(), req)
 	if err != nil {
 		log.Fatalf("unexpected error when fetching task stream: %v", err)
 	}
@@ -93,7 +101,13 @@ func updateTasks(c pb.TodoServiceClient, taskIDs []uint64) {
 			DueDate:     timestamppb.New(now),
 			Done:        true,
 		}
-		if err := stream.Send(&pb.UpdateTasksRequest{Task: task}); err != nil {
+		req := &pb.UpdateTasksRequest{
+			Id:          task.Id,
+			Description: task.Description,
+			Done:        task.Done,
+			DueDate:     task.DueDate,
+		}
+		if err := stream.Send(req); err != nil {
 			log.Fatalf("unexpected error when sending task update for id %d: %v", id, err)
 		}
 	}

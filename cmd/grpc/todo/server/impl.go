@@ -34,9 +34,11 @@ func (s *server) AddTask(_ context.Context, in *pb.AddTaskRequest) (*pb.AddTaskR
 func (s *server) ListTasks(req *pb.ListTasksRequest, stream pb.TodoService_ListTasksServer) error {
 	now := time.Now().UTC()
 	handler := func(task *pb.Task) error {
+		pb.Filter(task, req.Mask)
+
 		res := &pb.ListTasksResponse{
 			Task:    task,
-			Overdue: !task.Done && now.After(task.DueDate.AsTime()),
+			Overdue: task.DueDate != nil && !task.Done && now.After(task.DueDate.AsTime()),
 		}
 		return stream.Send(res)
 	}
@@ -53,8 +55,15 @@ func (s *server) UpdateTasks(stream pb.TodoService_UpdateTasksServer) error {
 		if err != nil {
 			return err
 		}
-		if err := s.d.updateTask(req.Task); err != nil {
-			log.Printf("failed to update task with id %d in DB: %v\n", req.Task.Id, err)
+
+		task := &pb.Task{
+			Id:          req.Id,
+			Description: req.Description,
+			Done:        req.Done,
+			DueDate:     req.DueDate,
+		}
+		if err := s.d.updateTask(task); err != nil {
+			log.Printf("failed to update task with id %d in DB: %v\n", req.Id, err)
 		}
 	}
 }
