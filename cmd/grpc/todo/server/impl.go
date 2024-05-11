@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pb "github.com/lgeorgieff/go-playground/proto/todo/v1"
+	"github.com/pkg/errors"
 )
 
 var _ pb.TodoServiceServer = (*server)(nil)
@@ -54,6 +55,24 @@ func (s *server) UpdateTasks(stream pb.TodoService_UpdateTasksServer) error {
 		}
 		if err := s.d.updateTask(req.Task); err != nil {
 			log.Printf("failed to update task with id %d in DB: %v\n", req.Task.Id, err)
+		}
+	}
+}
+
+func (s *server) DeleteTasks(stream pb.TodoService_DeleteTasksServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := s.d.deleteTask(req.Id); err != nil {
+			return errors.Wrapf(err, "failed to delete task with ID %d from DB", req.Id)
+		}
+		if err := stream.Send(&pb.DeleteTasksResponse{}); err != nil {
+			return errors.Wrapf(err, "failed to send DeleteTasksResponse for ID %d", req.Id)
 		}
 	}
 }

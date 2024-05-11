@@ -52,6 +52,15 @@ func (db *inMemmoryDB) updateTask(task *pb.Task) error {
 	return errors.Errorf("task with id %d not found in DB", task.Id)
 }
 
+func (db *inMemmoryDB) deleteTask(id uint64) error {
+	if _, ok := db.tasks[id]; !ok {
+		return errors.Errorf("failed to delete task with id %d - id not found", id)
+	}
+	delete(db.tasks, id)
+	log.Printf("Deleted task with id %d\n", id)
+	return nil
+}
+
 func NewDB() db {
 	return &inMemmoryDB{
 		tasks: make(map[uint64]*pb.Task),

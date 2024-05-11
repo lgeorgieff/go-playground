@@ -47,6 +47,8 @@ func main() {
 	printTasks(c)
 
 	updateTasks(c, []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+
+	deleteTasks(c, []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 }
 
 func addTask(c pb.TodoServiceClient, description string, dueDate time.Time) (uint64, error) {
@@ -96,6 +98,40 @@ func updateTasks(c pb.TodoServiceClient, taskIDs []uint64) {
 		}
 	}
 	if _, err := stream.CloseAndRecv(); err != nil {
-		log.Fatalf("unexpected error when closing UpdateTaskstream: %v", err)
+		log.Fatalf("unexpected error when closing UpdateTask stream: %v", err)
 	}
+}
+
+func deleteTasks(c pb.TodoServiceClient, taskIDs []uint64) {
+	stream, err := c.DeleteTasks(context.Background())
+	if err != nil {
+		log.Fatalf("unexpected error when creating a DeleteTask stream: %v", err)
+	}
+
+	waitc := make(chan struct{})
+	go func() {
+		for {
+			_, err := stream.Recv()
+			if err == io.EOF {
+				close(waitc)
+				break
+			}
+			if err != nil {
+				log.Fatalf("unexpected error when receiving a DeleteTask response: %v", err)
+			}
+
+			log.Println("deleted Tasks")
+		}
+	}()
+
+	for _, id := range taskIDs {
+		req := &pb.DeleteTasksRequest{Id: id}
+		if err := stream.Send(req); err != nil {
+			log.Fatalf("unexpected error when sending DeleteTask for id %d: %v", id, err)
+		}
+	}
+	if err := stream.CloseSend(); err != nil {
+		log.Fatalf("unexpected error when closing DeleteTask stream: %v", err)
+	}
+	<-waitc
 }
