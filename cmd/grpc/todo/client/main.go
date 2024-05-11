@@ -82,7 +82,11 @@ func printTasks(c pb.TodoServiceClient) {
 	req := &pb.ListTasksRequest{
 		Mask: fm,
 	}
-	stream, err := c.ListTasks(context.Background(), req)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+
+	stream, err := c.ListTasks(ctx, req)
 	if err != nil {
 		log.Fatalf("unexpected error when fetching task stream: %v", err)
 	}

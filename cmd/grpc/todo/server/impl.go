@@ -41,8 +41,24 @@ func (s *server) AddTask(_ context.Context, in *pb.AddTaskRequest) (*pb.AddTaskR
 }
 
 func (s *server) ListTasks(req *pb.ListTasksRequest, stream pb.TodoService_ListTasksServer) error {
+	ctx := stream.Context()
+
 	now := time.Now().UTC()
 	handler := func(task *pb.Task) error {
+		time.Sleep(250 * time.Millisecond)
+
+		select {
+		case <-ctx.Done():
+			switch ctx.Err() {
+			case context.Canceled:
+				log.Printf("request canceled: %s", ctx.Err())
+			case context.DeadlineExceeded:
+				log.Printf("request deadline exceeded: %s", ctx.Err())
+			}
+			return ctx.Err()
+		case <-time.After(1 * time.Millisecond):
+		}
+
 		pb.Filter(task, req.Mask)
 
 		res := &pb.ListTasksResponse{
