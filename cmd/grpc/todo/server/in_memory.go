@@ -5,6 +5,7 @@ import (
 	"time"
 
 	pb "github.com/lgeorgieff/go-playground/proto/todo/v1"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -37,6 +38,18 @@ func (db *inMemmoryDB) getTasks(f func(task *pb.Task) error) error {
 		}
 	}
 	return nil
+}
+
+func (db *inMemmoryDB) updateTask(task *pb.Task) error {
+	if dbTask, ok := db.tasks[task.Id]; ok {
+		dbTask.Description = task.Description
+		dbTask.Done = task.Done
+		dbTask.DueDate = task.DueDate
+
+		log.Printf("Updated task description=\"%s\", dueDate=%v, done=%t, id=%d\n", task.Description, task.DueDate, task.Done, task.Id)
+		return nil
+	}
+	return errors.Errorf("task with id %d not found in DB", task.Id)
 }
 
 func NewDB() db {

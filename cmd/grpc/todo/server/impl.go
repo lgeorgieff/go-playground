@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"io"
+	"log"
 	"time"
 
 	pb "github.com/lgeorgieff/go-playground/proto/todo/v1"
@@ -39,4 +41,19 @@ func (s *server) ListTasks(req *pb.ListTasksRequest, stream pb.TodoService_ListT
 	}
 
 	return s.d.getTasks(handler)
+}
+
+func (s *server) UpdateTasks(stream pb.TodoService_UpdateTasksServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&pb.UpdateTasksResponse{})
+		}
+		if err != nil {
+			return err
+		}
+		if err := s.d.updateTask(req.Task); err != nil {
+			log.Printf("failed to update task with id %d in DB: %v\n", req.Task.Id, err)
+		}
+	}
 }

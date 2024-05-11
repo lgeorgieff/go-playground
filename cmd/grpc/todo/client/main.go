@@ -45,6 +45,8 @@ func main() {
 	}
 
 	printTasks(c)
+
+	updateTasks(c, []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 }
 
 func addTask(c pb.TodoServiceClient, description string, dueDate time.Time) (uint64, error) {
@@ -73,5 +75,27 @@ func printTasks(c pb.TodoServiceClient) {
 			log.Fatalf("unexpected error when reading task from stream: %v", err)
 		}
 		log.Printf("receveid task response: %v\n", res)
+	}
+}
+
+func updateTasks(c pb.TodoServiceClient, taskIDs []uint64) {
+	stream, err := c.UpdateTasks(context.Background())
+	if err != nil {
+		log.Fatalf("unexpected error when creating an UpdateTask stream: %v", err)
+	}
+	now := time.Now().Add(1 * time.Minute)
+	for i, id := range taskIDs {
+		task := &pb.Task{
+			Id:          id,
+			Description: fmt.Sprintf("Updated task %d", i),
+			DueDate:     timestamppb.New(now),
+			Done:        true,
+		}
+		if err := stream.Send(&pb.UpdateTasksRequest{Task: task}); err != nil {
+			log.Fatalf("unexpected error when sending task update for id %d: %v", id, err)
+		}
+	}
+	if _, err := stream.CloseAndRecv(); err != nil {
+		log.Fatalf("unexpected error when closing UpdateTaskstream: %v", err)
 	}
 }
