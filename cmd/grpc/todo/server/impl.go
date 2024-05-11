@@ -8,6 +8,8 @@ import (
 
 	pb "github.com/lgeorgieff/go-playground/proto/todo/v1"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var _ pb.TodoServiceServer = (*server)(nil)
@@ -24,9 +26,16 @@ func NewTodoServer() pb.TodoServiceServer {
 }
 
 func (s *server) AddTask(_ context.Context, in *pb.AddTaskRequest) (*pb.AddTaskResponse, error) {
+	if len(in.Description) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "expected task description, got an empty string")
+	}
+	if in.DueDate.AsTime().Before(time.Now().UTC()) {
+		return nil, status.Error(codes.InvalidArgument, "expected a task due_date that is in the future")
+	}
+
 	id, err := s.d.addTask(in.Description, in.DueDate.AsTime())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "unexpected error: %s", err.Error())
 	}
 	return &pb.AddTaskResponse{Id: id}, nil
 }

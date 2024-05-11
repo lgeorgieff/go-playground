@@ -11,7 +11,9 @@ import (
 
 	pb "github.com/lgeorgieff/go-playground/proto/todo/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -42,7 +44,7 @@ func main() {
 		dueData := time.Now().Add(time.Duration(rand.Intn(60)) * time.Second)
 		description := fmt.Sprintf("This is task no. %d", i)
 		id, err := addTask(c, description, dueData)
-		log.Default().Printf("Adding task \"%s\" with result.id=%d, err=%v\n", description, id, err)
+		log.Printf("Adding task \"%s\" with result.id=%d, err=%v\n", description, id, err)
 	}
 
 	printTasks(c)
@@ -59,7 +61,15 @@ func addTask(c pb.TodoServiceClient, description string, dueDate time.Time) (uin
 	}
 	res, err := c.AddTask(context.Background(), req)
 	if err != nil {
-		return 0, err
+		if s, ok := status.FromError(err); ok {
+			switch s.Code() {
+			case codes.Internal:
+				fallthrough
+			case codes.InvalidArgument:
+				log.Printf("received response with status code %d for task description=%s, dueDate=%s when adding it\n", s.Code(), description, dueDate)
+				return 0, err
+			}
+		}
 	}
 	return res.Id, nil
 }
