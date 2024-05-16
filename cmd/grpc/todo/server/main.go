@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/lgeorgieff/go-playground/proto/todo/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -32,6 +33,10 @@ func main() {
 	opts := []grpc.ServerOption{}
 	s := grpc.NewServer(opts...)
 	pb.RegisterTodoServiceServer(s, NewTodoServer())
+	// Usage with grpcui:
+	//  * go install github.com/fullstorydev/grpcui/cmd/grpcui@latest
+	//  * $GOPATH/bin/grpcui -plaintext 127.0.0.1:50051
+	reflection.Register(s)
 
 	defer s.Stop()
 	if err := s.Serve(listener); err != nil {
